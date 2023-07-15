@@ -1,0 +1,23 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'application'
+
+repositories {
+    mavenCentral()
+}
+
+mainClassName = ""
+
+dependencies {
+    implementation 'com.scalar-labs:scalardb:3.9.0'
+    implementation 'org.slf4j:slf4j-simple:1.7.30'
+    implementation 'io.javalin:javalin:5.6.1'
+    implementation 'org.json:json:20230618'
+}
+
+sourceCompatibility = 1.8 
+targetCompatibility = 1.8 
+
+run {
+    args = []
+}
