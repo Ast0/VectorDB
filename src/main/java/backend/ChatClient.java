@@ -43,14 +43,14 @@ public class ChatClient extends JSONClient
             
             case "GetMessages":
                 GetMessages(
-                    message.optString("contact"), 
+                    message.optInt("contact"), 
                     message.optNumber("amount")
                 );
                 break;
             
             case "SendMessage":
                 SendMessage(
-                    message.getString("contact"), 
+                    message.getInt("contact"), 
                     message.getString("text")
                 );
                 break;
@@ -80,12 +80,12 @@ public class ChatClient extends JSONClient
 
     }
 
-    private void GetMessages(String contact, Number amount)
+    private void GetMessages(int contact, Number amount)
     {
 
     }
 
-    private void SendMessage(String contact, String text)
+    private void SendMessage(int contact, String text)
     {
 
     }

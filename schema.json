@@ -1,0 +1,71 @@
+{
+  "chat.account": {
+    "transaction": true,
+    "partition-key": [
+      "id"
+    ],
+    "clustering-key": [],
+    "columns": {
+      "id": "INT",
+      "username": "TEXT",
+      "email": "TEXT",
+      "password": "TEXT"
+    }
+  },
+  "chat.message": {
+    "transaction": true,
+    "partition-key": [
+      "sender",
+      "receiver",
+      "time"
+    ],
+    "clustering-key": [],
+    "columns": {
+      "sender": "INT",
+      "receiver": "INT",
+      "time": "BIGINT",
+      "text": "TEXT"
+    }
+  },
+
+  "game.item": {
+    "transaction": true,
+    "partition-key": [
+      "id"
+    ],
+    "clustering-key": [],
+    "columns": {
+      "id": "INT",
+      "name": "TEXT",
+      "description": "TEXT"
+    }
+  },
+  "game.inventory": {
+    "transaction": true,
+    "partition-key": [
+      "itemID",
+      "userID"
+    ],
+    "clustering-key": [],
+    "columns": {
+      "itemID": "INT",
+      "userID": "INT",
+      "amount": "INT"
+    }
+  },
+  "game.order": {
+    "transaction": true,
+    "partition-key": [
+      "id"
+    ],
+    "clustering-key": [],
+    "columns": {
+      "id": "INT",
+      "itemID": "INT",
+      "userID": "INT",
+      "time": "BIGINT",
+      "amount": "INT",
+      "price": "INT"
+    }
+  }
+}
