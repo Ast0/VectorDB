@@ -29,7 +29,7 @@
   },
 
   "game.item": {
-    "transaction": true,
+    "transaction": false,
     "partition-key": [
       "id"
     ],
