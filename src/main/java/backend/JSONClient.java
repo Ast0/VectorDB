@@ -1,6 +1,8 @@
 package backend;
 
 import java.util.function.Consumer;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public abstract class JSONClient
@@ -12,7 +14,7 @@ public abstract class JSONClient
         this.sendCallback = sendCallback;
     }
 
-    protected final void SendMessage(String message)
+    protected final void sendMessage(String message)
     {
         try
         {
@@ -26,17 +28,26 @@ public abstract class JSONClient
     
     protected final void SendMessage(JSONObject message)
     {
-        SendMessage(message.toString());
+        sendMessage(message.toString());
     }
 
-    public final void ReceiveMessage(String message)
+    public final void receiveMessage(String message)
     {
-        JSONObject json = new JSONObject(message);
-        HandleMessage(json);
+        try
+        {
+            JSONObject json = new JSONObject(message);
+            handleMessage(json);
+        }
+        catch (JSONException e)
+        {
+            throw new RuntimeException("Received invalid JSON message.", e);
+        }
     }
     
-    protected void HandleMessage(JSONObject message)
+    protected void handleMessage(JSONObject message)
     {
         throw new RuntimeException("Unrecognized JSON message:\n" + message);
     }
+
+    public void close() {}
 }

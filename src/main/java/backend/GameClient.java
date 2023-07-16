@@ -1,30 +1,51 @@
 package backend;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.json.JSONObject;
 
+import model.Account;
+import model.Chatter;
+import model.Player;
+
 public class GameClient extends ChatClient
 {
-    protected GameClient(Consumer<String> sendCallback) {
-        super(sendCallback);
+    private Player user;
+    private List<Player> activePlayers;
+
+    protected GameClient(Consumer<String> sendCallback, List<Chatter> activeChatters, List<Player> activePlayers) {
+        super(sendCallback, activeChatters);
+
+        this.activePlayers = activePlayers;
+    }
+
+    @Override
+    protected Chatter getUser(Account account)
+    {
+        user = new Player(account, this);
+        return user;
     }
     
     @Override
-    protected void HandleMessage(JSONObject message)
+    protected void handleMessage(JSONObject message)
     {
         switch (message.optString("method"))
         {
-            case "GetInventory":
-                GetInventory();
+            case "getItems":
+                getItems();
                 break;
             
-            case "GetOrders":
-                GetOrders();
+            case "getInventory":
+                getInventory();
                 break;
             
-            case "CreateOrder":
-                CreateOrder(
+            case "getOrders":
+                getOrders();
+                break;
+            
+            case "createOrder":
+                createOrder(
                     message.getString("type"), 
                     message.getInt("itemID"),  
                     message.getInt("amount"), 
@@ -32,35 +53,60 @@ public class GameClient extends ChatClient
                 );
                 break;
             
-            case "FulfillOrder":
-                FulfillOrder( 
+            case "modifyOrder":
+                modifyOrder(
+                    message.getInt("orderID"),  
+                    message.getInt("amount"), 
+                    message.getInt("price")
+                );
+                break;
+            
+            case "fulfillOrder":
+                fulfillOrder( 
                     message.getInt("orderID"), 
                     message.getInt("amount")
                 );
                 break;
             
             default:
-                super.HandleMessage(message);
+                super.handleMessage(message);
         }
     }
 
-    private void GetInventory()
+    private void getItems()
     {
 
     }
 
-    private void GetOrders()
+    private void getInventory()
     {
-
+        checkLogin();
     }
 
-    private void CreateOrder(String type, int itemID, int amount, int price)
+    private void getOrders()
     {
-
+        checkLogin();
     }
 
-    private void FulfillOrder(int orderID, int amount)
+    private void createOrder(String type, int itemID, int amount, int price)
     {
+        checkLogin();
+    }
 
+    private void modifyOrder(int orderID, int amount, int price)
+    {
+        checkLogin();
+    }
+
+    private void fulfillOrder(int orderID, int amount)
+    {
+        checkLogin();
+    }
+    
+    @Override
+    public void close()
+    {
+        activePlayers.remove(user);
+        super.close();
     }
 }

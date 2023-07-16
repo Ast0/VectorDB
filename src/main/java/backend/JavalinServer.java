@@ -1,24 +1,40 @@
 package backend;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import io.javalin.Javalin;
 import io.javalin.websocket.WsConfig;
 import io.javalin.websocket.WsContext;
 
+import model.Chatter;
+import model.Player;
+
 public class JavalinServer
 {
     private Map<WsContext, JSONClient> clientMap;
 
+    private List<Chatter> activeChatters;
+    private List<Player> activePlayers;
+
     public void start()
     {
-        Javalin app = Javalin.create(config -> {
-        }).start();
-
-        app.ws("/chat", ws -> ConfigureWs(ws, false));
-        app.ws("/game", ws -> ConfigureWs(ws, true));
-
+        try
+        {
+            Database.createSingleton(".\\scalardb.properties");
+            
+            Javalin app = Javalin.create(config -> {
+            }).start();
+            
+            app.ws("/chat", ws -> configureWs(ws, false));
+            app.ws("/game", ws -> configureWs(ws, true));
+            
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Could not start server.", e);
+        }
     }
 
     public static void main(String[] args)
@@ -26,22 +42,22 @@ public class JavalinServer
         new JavalinServer().start();
     }
 
-    private void ConfigureWs(WsConfig ws, boolean useGameClient)
+    private void configureWs(WsConfig ws, boolean useGameClient)
     {
         if (useGameClient)
         {
             ws.onConnect(ctx -> {
-                clientMap.put(ctx, new GameClient(message -> ctx.send(message)));
+                clientMap.put(ctx, new GameClient(message -> ctx.send(message), activeChatters, activePlayers));
             });
         }
         else
         {
             ws.onConnect(ctx -> {
-                clientMap.put(ctx, new ChatClient(message -> ctx.send(message)));
+                clientMap.put(ctx, new ChatClient(message -> ctx.send(message), activeChatters));
             });
         }
 
         ws.onClose(ctx -> clientMap.remove(ctx));
-        ws.onMessage(ctx -> clientMap.get(ctx).ReceiveMessage(ctx.message()));
+        ws.onMessage(ctx -> clientMap.get(ctx).receiveMessage(ctx.message()));
     }
 }
