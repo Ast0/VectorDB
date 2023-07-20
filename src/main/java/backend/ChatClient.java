@@ -12,6 +12,7 @@ import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.Result;
 import com.scalar.db.api.Scan;
 import com.scalar.db.api.Scan.Ordering;
+import com.scalar.db.api.ScanBuilder.BuildableScan;
 import com.scalar.db.exception.transaction.AbortException;
 import com.scalar.db.io.Key;
 
@@ -270,13 +271,15 @@ public class ChatClient extends JSONClient
                 key = Key.of("sender", user.id, "receiver", contact);
 
 
-            Scan scan = new Message().getScanBuilder()
+            BuildableScan scan = new Message().getScanBuilder()
                         .partitionKey(key)
-                        .ordering(ordering)
-                        .limit(limit.intValue())
-                        .build();
+                        .ordering(ordering);
+            if (limit != null)
+            {
+                scan = scan.limit(limit.intValue());
+            }
             
-            List<Result> result = transaction.scan(scan);
+            List<Result> result = transaction.scan(scan.build());
             
             if (contact == 0)
                 key = Key.ofInt("receiver", user.id);
@@ -286,11 +289,14 @@ public class ChatClient extends JSONClient
 
             scan = new Message().getScanBuilder()
                         .partitionKey(key)
-                        .ordering(ordering)
-                        .limit(limit.intValue())
-                        .build();
+                        .ordering(ordering);
+            if (limit != null)
+            {
+                scan = scan.limit(limit.intValue());
+            }
+            
 
-            result.addAll(transaction.scan(scan));
+            result.addAll(transaction.scan(scan.build()));
             transaction.commit();
 
             JSONArray array = new JSONArray(result.size());
