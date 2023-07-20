@@ -54,10 +54,12 @@ class Order {
   int userID;
   @JsonKey(fromJson: _timeFromJson, toJson: _timeToJson)
   DateTime time;
+  bool isBuy;
   int amount;
   int price;
 
-  Order(this.id, this.itemID, this.userID, this.time, this.amount, this.price);
+  Order(this.id, this.itemID, this.userID, this.time, this.isBuy, this.amount,
+      this.price);
 
   factory Order.fromJson(JsonMap json) => _$OrderFromJson(json);
   JsonMap toJson() => _$OrderToJson(this);

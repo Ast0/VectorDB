@@ -49,7 +49,9 @@ class WebSocketServer {
     _subscription = _channel.stream.listen(_receiveMessage);
   }
 
-  void sendJson(JsonMap message) async {}
+  void sendJson(JsonMap message) async {
+    _channel.sink.add(jsonEncode(message));
+  }
 
   Future<JsonMap> callMethod(String name, JsonMap arguments) async {
     if (_pending.containsKey(name)) {
@@ -77,7 +79,7 @@ class WebSocketServer {
         _handleEvent(json);
       }
     } catch (e) {
-      //
+      rethrow;
     }
   }
 

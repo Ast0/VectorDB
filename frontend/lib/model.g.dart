@@ -49,6 +49,7 @@ Order _$OrderFromJson(Map<String, dynamic> json) => Order(
       json['itemID'] as int,
       json['userID'] as int,
       _timeFromJson(json['time'] as int),
+      json['isBuy'] as bool,
       json['amount'] as int,
       json['price'] as int,
     );
@@ -58,6 +59,7 @@ Map<String, dynamic> _$OrderToJson(Order instance) => <String, dynamic>{
       'itemID': instance.itemID,
       'userID': instance.userID,
       'time': _timeToJson(instance.time),
+      'isBuy': instance.isBuy,
       'amount': instance.amount,
       'price': instance.price,
     };
