@@ -1,118 +1,332 @@
 package backend;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.scalar.db.api.DistributedTransaction;
+import com.scalar.db.api.Result;
+import com.scalar.db.api.Scan;
+import com.scalar.db.api.Scan.Ordering;
+import com.scalar.db.exception.transaction.AbortException;
+import com.scalar.db.io.Key;
 
 import model.Account;
 import model.Chatter;
+import model.Message;
 
 public class ChatClient extends JSONClient
 {
     private Chatter user;
     private List<Chatter> activeChatters;
+    protected Database database;
 
     protected ChatClient(Consumer<String> sendCallback, List<Chatter> activeChatters) {
         super(sendCallback);
 
         this.activeChatters = activeChatters;
+        database = Database.getSingleton();
+    }
+
+    protected JSONObject success()
+    {
+        return new JSONObject().put("type", "success");
+    }
+
+    protected JSONObject value(Object value)
+    {
+        return new JSONObject().put("type", "value").put("value", value);
+    }
+
+    protected JSONObject error(String message)
+    {
+        return new JSONObject().put("type", "error").put("message", message);
     }
 
     @Override
     protected void handleMessage(JSONObject message)
     {
+        JSONObject response;
+
+        try
+        {
+            System.out.printf("Received method call to %s.\n", message.optString("method"));
+            response = handleMethod(message);
+        }
+        catch (Exception e)
+        {
+            System.out.println(e);
+            response = error(e.getMessage());
+        }
+
+        response.put("method", message.optString("method"));
+        SendMessage(response);
+    }
+    
+    protected JSONObject handleMethod(JSONObject message)
+    {
         switch (message.optString("method"))
         {
             case "createAccount":
-                createAccount(
+                return createAccount(
                     message.getString("username"), 
                     message.getString("email"), 
                     message.getString("password")
                 );
-                break;
 
             case "login":
-                login(
+                return login(
                     message.getString("username"), 
                     message.getString("password")
                 );
-                break;
             
             case "logout":
-                logout();
-                break;
+                return logout();
 
             case "changePassword":
                 changePassword(
                     message.getString("oldPassword"), 
                     message.getString("newPassword")
                 );
-                break;
             
-            case "findUser":
-                findUser(
+            case "findUserID":
+                return findUserID(
                     message.getString("username")
                 );
-                break;
             
+            case "getUsername":
+                return getUsername(
+                    message.getInt("id")
+                );
+
             case "getMessages":
-                getMessages(
+                return getMessages(
                     message.optInt("contact"), 
                     message.optNumber("limit")
                 );
-                break;
             
             case "sendMessage":
-                sendMessage(
+                return sendMessage(
                     message.getInt("contact"), 
                     message.getString("text")
                 );
-                break;
             
             default:
-                super.handleMessage(message);
+                return error("Invalid JSON message");
         }
     }
 
-    protected Chatter getUser(Account account)
+    protected Chatter loginUser(Account account)
     {
         return new Chatter(account, this);
     }
 
-    private void createAccount(String username, String email, String password)
+    protected void logoutUser()
     {
-
+        activeChatters.remove(user);
+        user = null;
     }
 
-    private void login(String username, String password)
+    private JSONObject createAccount(String username, String email, String password)
     {
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
+            Account account;
+            
+            try {
+                account = Account.getByName(transaction, username);
+                if (account != null)
+                    return error("An account with that username already exists.");
+            } catch (Exception e) {
+                return error(e.getMessage());
+            }
 
+            account = database.createAccount();
+
+            account.username = username;
+            account.email = email;
+            account.password = password;
+
+            transaction.put(account.getPut());
+            transaction.commit();
+
+            return success();
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
     }
 
-    private void logout()
+    private JSONObject login(String username, String password)
     {
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
 
+            Account account = Account.getByName(transaction, username);
+            transaction.commit();
+
+            if (account != null) // TODO passwords
+            {
+                user = loginUser(account);
+                return value(user.id);
+            }
+            
+            return error("Login failed.");
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
     }
 
-    private void changePassword(String oldPassword, String newPassword)
+    private JSONObject logout()
+    {
+        if (user != null)
+        {
+            logoutUser();
+        }
+        return success();
+    }
+
+    private JSONObject changePassword(String oldPassword, String newPassword)
     {
         checkLogin();
+        return error("Not implemented...");
     }
 
-    private void findUser(String username)
+    private JSONObject findUserID(String username)
     {
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
 
+            Account account = Account.getByName(transaction, username);
+            transaction.commit();
+
+            if (account != null)
+            {
+                return value(account.id);
+            }
+            
+            return error("An account with that username does not exist.");
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
     }
 
-    private void getMessages(int contact, Number limit)
+    private JSONObject getUsername(int id)
     {
         checkLogin();
+        
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
+
+            Account account = new Account(id);
+            Optional<Result> result = transaction.get(account.getGet());
+            transaction.commit();
+
+            if (result.isPresent())
+            {
+                return value(user.name);
+            }
+            
+            return error("User not found.");
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
     }
 
-    private void sendMessage(int contact, String text)
+    private JSONObject getMessages(int contact, Number limit)
     {
         checkLogin();
+
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
+
+            Ordering ordering = Ordering.desc("time");
+
+            Key key;
+            if (contact == 0)
+                key = Key.ofInt("sender", user.id);
+            else
+                key = Key.of("sender", user.id, "receiver", contact);
+
+
+            Scan scan = new Message().getScanBuilder()
+                        .partitionKey(key)
+                        .ordering(ordering)
+                        .limit(limit.intValue())
+                        .build();
+            
+            List<Result> result = transaction.scan(scan);
+            
+            if (contact == 0)
+                key = Key.ofInt("receiver", user.id);
+            else
+                key = Key.of("receiver", user.id, "sender", contact);
+
+
+            scan = new Message().getScanBuilder()
+                        .partitionKey(key)
+                        .ordering(ordering)
+                        .limit(limit.intValue())
+                        .build();
+
+            result.addAll(transaction.scan(scan));
+            transaction.commit();
+
+            JSONArray array = new JSONArray(result.size());
+            array.putAll(result.stream().map(Message::new));
+
+            return value(array);
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
+    }
+
+    private JSONObject sendMessage(int contact, String text)
+    {
+        checkLogin();
+
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = database.startTransaction();
+
+            Message message = new Message();
+            message.sender = user.id;
+            message.receiver = contact;
+            message.time = Instant.now();
+            message.text = text;
+
+            transaction.put(message.getPut());
+            transaction.commit();
+            return success();
+        }
+        catch (Exception e)
+        {
+            return handleTransactionException(transaction, e);
+        }
     }
 
     protected void checkLogin()
@@ -122,7 +336,34 @@ public class ChatClient extends JSONClient
             throw new RuntimeException("Client must be logged in to perform this action.");
         }
     }
+
+    @Override
+    protected void handleError(String message, Exception cause)
+    {
+        try
+        {
+            SendMessage(error(message));
+        }
+        catch (Exception e)
+        {
+            super.handleError("Error handling error: " + message, e);
+        }
+    }
     
+    private JSONObject handleTransactionException(DistributedTransaction transaction, Exception e)
+    {
+        try
+        {
+            if (transaction != null)
+                transaction.abort();
+        }
+        catch (AbortException f)
+        {
+            return error(f.getMessage());
+        }
+        return error(e.getMessage());
+    }
+
     @Override
     public void close()
     {

@@ -1,6 +1,8 @@
 package backend;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +19,13 @@ public class JavalinServer
 
     private List<Chatter> activeChatters;
     private List<Player> activePlayers;
+
+    public JavalinServer()
+    {
+        clientMap = new HashMap<WsContext, JSONClient>();
+        activeChatters = new ArrayList<Chatter>();
+        activePlayers = new ArrayList<Player>();
+    }
 
     public void start()
     {
@@ -47,17 +56,27 @@ public class JavalinServer
         if (useGameClient)
         {
             ws.onConnect(ctx -> {
+                System.out.println("Connected.");
                 clientMap.put(ctx, new GameClient(message -> ctx.send(message), activeChatters, activePlayers));
             });
         }
         else
         {
             ws.onConnect(ctx -> {
+                System.out.println("Connected.");
+                ctx.enableAutomaticPings(100);
                 clientMap.put(ctx, new ChatClient(message -> ctx.send(message), activeChatters));
             });
         }
 
-        ws.onClose(ctx -> clientMap.remove(ctx));
-        ws.onMessage(ctx -> clientMap.get(ctx).receiveMessage(ctx.message()));
+        ws.onClose(ctx -> {
+                System.out.println("Disconnected.");
+            clientMap.get(ctx).close();
+            clientMap.remove(ctx);
+        });
+        ws.onMessage(ctx -> {
+            System.out.println("Received message.");
+            clientMap.get(ctx).receiveMessage(ctx.message());
+        });
     }
 }

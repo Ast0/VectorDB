@@ -12,7 +12,9 @@ import com.scalar.db.exception.transaction.TransactionException;
 import com.scalar.db.service.StorageFactory;
 import com.scalar.db.service.TransactionFactory;
 
+import model.Account;
 import model.Item;
+import model.Order;
 
 public class Database
 {
@@ -29,6 +31,9 @@ public class Database
     private DistributedTransactionManager manager;
 
     private Item[] items = null;
+
+    private int nextAccountID;
+    private int nextOrderID;
 
     public Database(String propertiesPath) throws IOException
     {
@@ -67,5 +72,25 @@ public class Database
         }
 
         return items;
+    }
+
+    public Account createAccount()
+    {
+        int id = nextAccountID++;
+        if (nextAccountID == 0)
+        {
+            throw new RuntimeException("Ran out of account ids!");
+        }
+        return new Account(id);
+    }
+    
+    public Order createOrder()
+    {
+        int id = nextOrderID++;
+        if (nextOrderID == 0)
+        {
+            throw new RuntimeException("Ran out of order ids!");
+        }
+        return new Order(id);
     }
 }

@@ -40,13 +40,22 @@ public abstract class JSONClient
         }
         catch (JSONException e)
         {
-            throw new RuntimeException("Received invalid JSON message.", e);
+            handleError("Received invalid JSON message.", e);
+        }
+        catch (Exception e)
+        {
+            handleError("Internal Server Error", e);
         }
     }
     
     protected void handleMessage(JSONObject message)
     {
-        throw new RuntimeException("Unrecognized JSON message:\n" + message);
+        handleError("Unrecognized JSON message:\n" + message, null);
+    }
+
+    protected void handleError(String message, Exception cause)
+    {
+        throw new RuntimeException(message, cause);
     }
 
     public void close() {}

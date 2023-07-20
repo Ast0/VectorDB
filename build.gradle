@@ -6,7 +6,7 @@ repositories {
     mavenCentral()
 }
 
-mainClassName = ""
+mainClassName = "backend.JavalinServer"
 
 dependencies {
     implementation 'com.scalar-labs:scalardb:3.9.0'
