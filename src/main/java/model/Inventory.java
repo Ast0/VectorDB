@@ -40,8 +40,8 @@ public class Inventory extends DBTuple
     @Override
     protected Buildable completePut(Buildable put)
     {
-        return put.intValue("itemID", itemID)
-                .intValue("userID", userID)
+        return put//.intValue("itemID", itemID)
+                //.intValue("userID", userID)
                 .intValue("amount", amount);
     }
 }

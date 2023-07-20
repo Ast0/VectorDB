@@ -26,6 +26,7 @@ public class Message extends DBTuple
     }
 
     public Message(Result tuple) { update(tuple); }
+    public Message() {}
 
     @Override
     public void update(Result tuple)
@@ -39,9 +40,9 @@ public class Message extends DBTuple
     @Override
     protected Buildable completePut(Buildable put)
     {
-        return put.intValue("sender", sender)
-                .intValue("receiver", receiver)
-                .bigIntValue("time", time.getEpochSecond())
+        return put//.intValue("sender", sender)
+                //.intValue("receiver", receiver)
+                //.bigIntValue("time", time.getEpochSecond())
                 .textValue("text", text);
     }
 }

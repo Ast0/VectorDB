@@ -14,6 +14,7 @@ public class Order extends DBTuple
     public int itemID;
     public int userID;
     public Instant time;
+    public boolean isBuy;
     public int amount;
     public int price;
 
@@ -34,6 +35,7 @@ public class Order extends DBTuple
         itemID = tuple.getInt("itemID");
         userID = tuple.getInt("userID");
         time = Instant.ofEpochSecond(tuple.getBigInt("time"));
+        isBuy = tuple.getBoolean("isBuy");
         amount = tuple.getInt("amount");
         price = tuple.getInt("price");
     }
@@ -41,10 +43,11 @@ public class Order extends DBTuple
     @Override
     protected Buildable completePut(Buildable put)
     {
-        return put.intValue("id", id)
+        return put//.intValue("id", id)
                 .intValue("itemID", itemID)
                 .intValue("userID", userID)
                 .bigIntValue("time", time.getEpochSecond())
+                .booleanValue("isBuy", isBuy)
                 .intValue("amount", amount)
                 .intValue("price", price);
     }

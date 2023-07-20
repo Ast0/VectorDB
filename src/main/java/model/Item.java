@@ -33,7 +33,7 @@ public class Item extends DBTuple
     @Override
     protected Buildable completePut(Buildable put)
     {
-        return put.intValue("id", id)
+        return put//.intValue("id", id)
                 .textValue("name", name)
                 .textValue("description", description);
     }
