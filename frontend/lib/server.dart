@@ -59,4 +59,31 @@ class ChatServer extends WebSocketServer {
 
 class GameServer extends ChatServer {
   GameServer(super.uri);
+
+  Future<ServerList<Item>> getItems() async => ServerList.fromJson(
+      await callMethod("getMessages", const {}), Item.fromJson);
+
+  Future<ServerList<Inventory>> getInventory() async => ServerList.fromJson(
+      await callMethod("getMessages", const {}), Inventory.fromJson);
+
+  Future<ServerList<Order>> getOrders(int itemID) async => ServerList.fromJson(
+      await callMethod("getMessages", {"itemID": itemID}), Order.fromJson);
+
+  Future<ServerResponse> createOrder(
+          bool isBuy, int itemID, int amount, int price) async =>
+      ServerResponse.fromJson(await callMethod("sendMessage", {
+        "type": isBuy ? "buy" : "sell",
+        "itemID": itemID,
+        "amount": amount,
+        "price": price
+      }));
+
+  Future<ServerResponse> modifyOrder(
+          int orderID, int amount, int price) async =>
+      ServerResponse.fromJson(await callMethod("sendMessage",
+          {"orderID": orderID, "amount": amount, "price": price}));
+
+  Future<ServerResponse> fulfillOrder(int orderID, int amount) async =>
+      ServerResponse.fromJson(await callMethod(
+          "sendMessage", {"orderID": orderID, "amount": amount}));
 }
