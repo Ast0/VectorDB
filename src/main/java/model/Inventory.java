@@ -8,8 +8,8 @@ import backend.Database;
 
 public class Inventory extends DBTuple
 {
-    public int itemID;
     public int userID;
+    public int itemID;
     public int amount;
 
     @Override
@@ -19,29 +19,33 @@ public class Inventory extends DBTuple
     @Override
     protected Key getPartitionKey()
     {
-        return Key.of("itemID", itemID, "userID", userID);
+        return Key.ofInt("userID", userID);
+    }
+    @Override
+    protected Key getClusteringKey()
+    {
+        return Key.ofInt("itemID", itemID);
     }
 
     public Inventory(Result tuple) { update(tuple); }
-    public Inventory(int itemID, int userID)
+    public Inventory(int userID, int itemID)
     {
-        this.itemID = itemID;
         this.userID = userID;
+        this.itemID = itemID;
     }
 
     @Override
     public void update(Result tuple)
     {
-        itemID = tuple.getInt("itemID");
         userID = tuple.getInt("userID");
+        itemID = tuple.getInt("itemID");
         amount = tuple.getInt("amount");
     }
 
     @Override
     protected Buildable completePut(Buildable put)
     {
-        return put//.intValue("itemID", itemID)
-                //.intValue("userID", userID)
+        return put.intValue("itemID", itemID)
                 .intValue("amount", amount);
     }
 }

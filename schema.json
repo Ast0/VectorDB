@@ -15,11 +15,12 @@
   "chat.message": {
     "transaction": true,
     "partition-key": [
-      "sender",
+      "sender"
+    ],
+    "clustering-key": [
       "receiver",
       "time"
     ],
-    "clustering-key": [],
     "columns": {
       "sender": "INT",
       "receiver": "INT",
@@ -43,13 +44,14 @@
   "game.inventory": {
     "transaction": true,
     "partition-key": [
-      "itemID",
       "userID"
     ],
-    "clustering-key": [],
+    "clustering-key": [
+      "itemID"
+    ],
     "columns": {
-      "itemID": "INT",
       "userID": "INT",
+      "itemID": "INT",
       "amount": "INT"
     }
   },

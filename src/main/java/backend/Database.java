@@ -1,7 +1,10 @@
 package backend;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.DistributedTransactionManager;
@@ -41,6 +44,33 @@ public class Database
 
         TransactionFactory factory = TransactionFactory.create(propertiesPath);
         manager = factory.getTransactionManager();
+
+        setupIDs();
+    }
+
+    private void setupIDs()
+    {
+        DistributedTransaction transaction = null;
+        try
+        {
+            transaction = startTransaction();
+            Stream<Account> accounts = transaction.scan(new Account(0).getScanAll()).stream().map(Account::new);
+            transaction.commit();
+            
+            transaction = startTransaction();
+            Stream<Order> orders = transaction.scan(new Order(0).getScanAll()).stream().map(Order::new);
+            transaction.commit();
+
+            Optional<Account> account = accounts.max(Comparator.comparingInt(tuple -> tuple.id));
+            Optional<Order> order = orders.max(Comparator.comparingInt(tuple -> tuple.id));
+
+            nextAccountID = account != null ? account.get().id + 1 : 1;
+            nextOrderID = order != null ? order.get().id + 1 : 1;
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException("Error initializing Database", e);
+        }
     }
 
     private static Database singleton;

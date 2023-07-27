@@ -1,5 +1,7 @@
 package model;
 
+import org.json.JSONObject;
+
 import com.scalar.db.api.Delete;
 import com.scalar.db.api.DeleteBuilder;
 import com.scalar.db.api.Get;
@@ -17,6 +19,8 @@ public abstract class DBTuple
     public abstract String getTable();
 
     protected abstract Key getPartitionKey();
+
+    protected Key getClusteringKey() { return null; }
 
     public abstract void update(Result tuple);
     
@@ -42,7 +46,13 @@ public abstract class DBTuple
 
     public Get getGet()
     {
-        return getGetBuilder().partitionKey(getPartitionKey()).build();
+        Key clusteringKey = getClusteringKey();
+        
+        if (clusteringKey == null)
+            return getGetBuilder().partitionKey(getPartitionKey()).build();
+        else
+            return getGetBuilder().partitionKey(getPartitionKey()).clusteringKey(clusteringKey).build();
+
     }
 
     protected abstract PutBuilder.Buildable completePut(PutBuilder.Buildable put);
@@ -60,5 +70,10 @@ public abstract class DBTuple
     public Scan getScanAll()
     {
         return getScanBuilder().all().build();
+    }
+
+    public JSONObject toJson() 
+    {
+        throw new UnsupportedOperationException("toJson not implemented");
     }
 }
