@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import io.javalin.Javalin;
 import io.javalin.websocket.WsConfig;
@@ -64,7 +65,7 @@ public class JavalinServer
         {
             ws.onConnect(ctx -> {
                 System.out.println("Connected.");
-                ctx.enableAutomaticPings(100);
+                ctx.enableAutomaticPings(10, TimeUnit.SECONDS);
                 clientMap.put(ctx, new ChatClient(message -> ctx.send(message), activeChatters));
             });
         }

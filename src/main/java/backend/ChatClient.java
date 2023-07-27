@@ -4,17 +4,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.scalar.db.api.DistributedTransaction;
 import com.scalar.db.api.Result;
-import com.scalar.db.api.Scan;
-import com.scalar.db.api.Scan.Ordering;
-import com.scalar.db.api.ScanBuilder.BuildableScan;
 import com.scalar.db.exception.transaction.AbortException;
-import com.scalar.db.io.Key;
 
 import model.Account;
 import model.Chatter;
@@ -140,12 +137,11 @@ public class ChatClient extends JSONClient
             transaction = database.startTransaction();
             Account account;
             
-            try {
-                account = Account.getByName(transaction, username);
-                if (account != null)
-                    return error("An account with that username already exists.");
-            } catch (Exception e) {
-                return error(e.getMessage());
+            account = Account.getByName(transaction, username);
+            if (account != null)
+            {
+                transaction.commit();
+                return error("An account with that username already exists.");
             }
 
             account = database.createAccount();
@@ -175,7 +171,7 @@ public class ChatClient extends JSONClient
             Account account = Account.getByName(transaction, username);
             transaction.commit();
 
-            if (account != null) // TODO passwords
+            if (account != null && account.password == password)
             {
                 user = loginUser(account);
                 return value(user.id);
@@ -261,46 +257,10 @@ public class ChatClient extends JSONClient
         try
         {
             transaction = database.startTransaction();
-
-            Ordering ordering = Ordering.desc("time");
-
-            Key key;
-            if (contact == 0)
-                key = Key.ofInt("sender", user.id);
-            else
-                key = Key.of("sender", user.id, "receiver", contact);
-
-
-            BuildableScan scan = new Message().getScanBuilder()
-                        .partitionKey(key)
-                        .ordering(ordering);
-            if (limit != null)
-            {
-                scan = scan.limit(limit.intValue());
-            }
-            
-            List<Result> result = transaction.scan(scan.build());
-            
-            if (contact == 0)
-                key = Key.ofInt("receiver", user.id);
-            else
-                key = Key.of("receiver", user.id, "sender", contact);
-
-
-            scan = new Message().getScanBuilder()
-                        .partitionKey(key)
-                        .ordering(ordering);
-            if (limit != null)
-            {
-                scan = scan.limit(limit.intValue());
-            }
-            
-
-            result.addAll(transaction.scan(scan.build()));
+            Stream<Message> result = transaction.scan(new Message().getScanAll()).stream().map(Message::new);
             transaction.commit();
 
-            JSONArray array = new JSONArray(result.size());
-            array.putAll(result.stream().map(Message::new));
+            JSONArray array = new JSONArray(result.filter(t -> t.sender == contact && t.receiver == user.id || t.receiver == contact && t.sender == user.id).map(t -> t.toJson()).toList());
 
             return value(array);
         }
@@ -356,7 +316,7 @@ public class ChatClient extends JSONClient
         }
     }
     
-    private JSONObject handleTransactionException(DistributedTransaction transaction, Exception e)
+    protected JSONObject handleTransactionException(DistributedTransaction transaction, Exception e)
     {
         try
         {

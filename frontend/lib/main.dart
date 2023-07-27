@@ -8,16 +8,43 @@ void main() {
   runApp(MainApp(server: server));
 }
 
-class MainApp extends StatefulWidget {
+class MainApp extends StatelessWidget {
   final GameServer server;
 
   const MainApp({required this.server, super.key});
 
   @override
-  State<StatefulWidget> createState() => MainAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Theme(
+        data: ThemeData.from(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.cyan)),
+        child: Scaffold(
+          body: server.userID == null
+              ? Container(
+                  alignment: Alignment.center, child: LoginForm(server: server))
+              : Row(
+                  children: [
+                    Flexible(child: MarketView(server: server)),
+                    Flexible(child: ChatView(server: server))
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
 }
 
-class MainAppState extends State<MainApp> {
+class LoginForm extends StatefulWidget {
+  final GameServer server;
+
+  const LoginForm({required this.server, super.key});
+
+  @override
+  State<StatefulWidget> createState() => LoginState();
+}
+
+class LoginState extends State<LoginForm> {
   bool login = false;
   String? error;
 
@@ -27,111 +54,92 @@ class MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: widget.server.userID == null
-            ? Container(
-                alignment: Alignment.center,
-                child: Container(
-                  color: Theme.of(context).dialogBackgroundColor,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: <Widget>[
-                        TextFormField(
-                          onSaved: (newValue) => username = newValue,
-                          decoration: const InputDecoration(
-                            hintText: 'Username',
-                          ),
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a username';
-                            }
-                            return null;
-                          },
-                        ),
-                        TextFormField(
-                          onSaved: (newValue) => password = newValue,
-                          decoration: const InputDecoration(
-                            hintText: 'Password',
-                          ),
-                          obscureText: true,
-                          validator: (String? value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter a password';
-                            }
-                            return null;
-                          },
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          child: Row(
-                            children: [
-                              ElevatedButton(
-                                onPressed: () async {
-                                  // Validate will return true if the form is valid, or false if
-                                  // the form is invalid.
-                                  if (_formKey.currentState!.validate()) {
-                                    _formKey.currentState!.save();
-
-                                    var result = await widget.server
-                                        .login(username!, password!);
-                                    if (result.isError) {
-                                      setState(() {
-                                        error = result.message;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        login = true;
-                                        error = null;
-                                      });
-                                    }
-                                  }
-                                },
-                                child: const Text('Login'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () async {
-                                  // Validate will return true if the form is valid, or false if
-                                  // the form is invalid.
-                                  if (_formKey.currentState!.validate()) {
-                                    _formKey.currentState!.save();
-
-                                    var result = await widget.server
-                                        .createAccount(
-                                            username!, "null", password!);
-                                    if (result.isError) {
-                                      setState(() {
-                                        error = result.message;
-                                      });
-                                    } else {
-                                      setState(() {
-                                        error = null;
-                                      });
-                                    }
-                                  }
-                                },
-                                child: const Text('Create Account'),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (error != null) Text(error!)
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            : Column(
+    return Container(
+      color: Theme.of(context).dialogBackgroundColor,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: <Widget>[
+            TextFormField(
+              onSaved: (newValue) => username = newValue,
+              decoration: const InputDecoration(
+                hintText: 'Username',
+              ),
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a username';
+                }
+                return null;
+              },
+            ),
+            TextFormField(
+              onSaved: (newValue) => password = newValue,
+              decoration: const InputDecoration(
+                hintText: 'Password',
+              ),
+              obscureText: true,
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a password';
+                }
+                return null;
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Row(
                 children: [
-                  IndexedStack(
-                    children: [
-                      Placeholder(), //Flexible(child: MarketView(server: widget.server)),
-                      Flexible(child: ChatView(server: widget.server))
-                    ],
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Validate will return true if the form is valid, or false if
+                      // the form is invalid.
+                      if (_formKey.currentState!.validate()) {
+                        _formKey.currentState!.save();
+
+                        var result =
+                            await widget.server.login(username!, password!);
+                        if (result.isError) {
+                          setState(() {
+                            error = result.message;
+                          });
+                        } else {
+                          setState(() {
+                            login = true;
+                            error = null;
+                          });
+                        }
+                      }
+                    },
+                    child: const Text('Login'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      // Validate will return true if the form is valid, or false if
+                      // the form is invalid.
+                      if (_formKey.currentState!.validate()) {
+                        _formKey.currentState!.save();
+
+                        var result = await widget.server
+                            .createAccount(username!, "null", password!);
+                        if (result.isError) {
+                          setState(() {
+                            error = result.message;
+                          });
+                        } else {
+                          setState(() {
+                            error = null;
+                          });
+                        }
+                      }
+                    },
+                    child: const Text('Create Account'),
                   ),
                 ],
               ),
+            ),
+            if (error != null) Text(error!)
+          ],
+        ),
       ),
     );
   }

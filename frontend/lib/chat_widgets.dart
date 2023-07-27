@@ -18,6 +18,9 @@ class ChatState extends State<ChatView> {
   Map<int, String>? contacts;
   int? selected;
   String? error;
+  String? addError;
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   ChatState(ChatServer server) {
     reloadContacts(server);
@@ -84,39 +87,94 @@ class ChatState extends State<ChatView> {
     });
   }
 
+  Future addContact(String username) async {
+    if (await addContactByName(username)) {
+      setState(() {
+        addError = null;
+      });
+    } else {
+      setState(() {
+        addError = "Contact not found.";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Row(
           children: [
-            contacts == null
-                ? LoadingCircle()
-                : Column(
-                    children: [
-                      NavBar(
-                        onSelect: selectChat,
-                        entries: contacts!.values.toList(),
+            SizedBox(
+              width: 200,
+              child: Container(
+                color: Theme.of(context).dividerColor,
+                child: contacts == null
+                    ? LoadingCircle()
+                    : Column(
+                        children: [
+                          NavBar(
+                            onSelect: selectChat,
+                            entries: contacts!.values.toList(),
+                          ),
+                          Container(
+                              child: Form(
+                            key: _formKey,
+                            child: Column(children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      onSaved: (newValue) =>
+                                          addContact(newValue!),
+                                      decoration: const InputDecoration(
+                                        hintText: 'Add Contact',
+                                      ),
+                                      validator: (String? value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter a username';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      // Validate will return true if the form is valid, or false if
+                                      // the form is invalid.
+                                      if (_formKey.currentState!.validate()) {
+                                        _formKey.currentState!.save();
+                                      }
+                                    },
+                                    child: const Text('Add'),
+                                  ),
+                                ],
+                              ),
+                              if (addError != null) Text(addError!)
+                            ]),
+                          ))
+                        ],
                       ),
-                      Container()
-                    ],
-                  ),
-            error == null
-                ? IndexedStack(
-                    index: selected,
-                    children: [
-                      if (contacts != null)
-                        for (var contact in contacts!.keys)
-                          Conversation(
-                              key: ValueKey(contact),
-                              server: widget.server,
-                              contactID: contact)
-                    ],
-                  )
-                : Container(
-                    alignment: Alignment.center,
-                    child: Text(error!),
-                  )
+              ),
+            ),
+            SizedBox(
+                height: 640,
+                child: error == null
+                    ? IndexedStack(
+                        index: selected,
+                        children: [
+                          if (contacts != null)
+                            for (var contact in contacts!.keys)
+                              Conversation(
+                                  key: ValueKey(contact),
+                                  server: widget.server,
+                                  contactID: contact)
+                        ],
+                      )
+                    : Container(
+                        alignment: Alignment.center,
+                        child: Text(error!),
+                      ))
           ],
         )
       ],
@@ -132,7 +190,7 @@ class Conversation extends StatefulWidget {
       {super.key, required this.server, required this.contactID});
 
   @override
-  State<StatefulWidget> createState() => ConversationState();
+  State<StatefulWidget> createState() => ConversationState(server, contactID);
 }
 
 class ConversationState extends State<Conversation> {
@@ -143,12 +201,12 @@ class ConversationState extends State<Conversation> {
   TextEditingController textField = TextEditingController();
   String? sendError;
 
-  ConversationState() {
-    reloadMessages();
+  ConversationState(ChatServer server, int contactID) {
+    reloadMessages(server, contactID);
   }
 
-  Future reloadMessages() async {
-    var result = await widget.server.getMessages(widget.contactID, limit);
+  Future reloadMessages(ChatServer server, int contactID) async {
+    var result = await server.getMessages(contactID, limit);
 
     setState(() {
       if (result.isError) {
@@ -182,6 +240,7 @@ class ConversationState extends State<Conversation> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         SingleChildScrollView(
           child: messages == null
@@ -192,7 +251,11 @@ class ConversationState extends State<Conversation> {
                       alignment: message.sender == widget.contactID
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
-                      child: Text(message.text),
+                      child: Text(
+                          textAlign: message.sender == widget.contactID
+                              ? TextAlign.left
+                              : TextAlign.right,
+                          message.text),
                     )
                 ]),
         ),
@@ -200,9 +263,12 @@ class ConversationState extends State<Conversation> {
             decoration: const BoxDecoration(),
             child: Row(
               children: [
-                TextField(
-                  controller: textField,
-                  onSubmitted: sendMessage,
+                SizedBox(
+                  width: 300,
+                  child: TextField(
+                    controller: textField,
+                    onSubmitted: sendMessage,
+                  ),
                 ),
                 ElevatedButton(
                     onPressed: () => sendMessage(textField.text),

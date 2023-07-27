@@ -33,13 +33,18 @@ class ServerValue<T> extends ServerResponse {
 
 class ServerList<T> extends ServerValue<List<T>> {
   ServerList.fromJson(message, T Function(JsonMap) converter)
-      : super.fromJson(message,
-            converter: (list) =>
-                (list as List<JsonMap>).map(converter).toList());
+      : super.fromJson(message, converter: (list) {
+          return (list as List<dynamic>)
+              .map(
+                (e) => converter(e as JsonMap),
+              )
+              .toList();
+        });
 }
 
 class WebSocketServer {
   final WebSocketChannel _channel;
+  // ignore: unused_field
   late final StreamSubscription _subscription;
   final Map<String, Completer<JsonMap>> _pending;
 
